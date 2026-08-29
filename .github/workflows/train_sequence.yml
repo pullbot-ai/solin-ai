@@ -29,4 +29,32 @@ jobs:
         pip install -r requirements.txt
     
     - name: Cache model
-      uses: actions/cache@
+      uses: actions/cache@v3
+      with:
+        path: models
+        key: ${{ runner.os }}-sequence-model-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-sequence-model-
+    
+    - name: Train sequence model
+      run: python workflows/train_sequence.py
+    
+    - name: Upload model
+      uses: actions/upload-artifact@v3
+      with:
+        name: sequence-model
+        path: models/sequence_nlt.json
+    
+    - name: Upload stats
+      uses: actions/upload-artifact@v3
+      with:
+        name: sequence-stats
+        path: models/sequence_stats.json
+    
+    - name: Commit model
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add models/sequence_nlt.json models/sequence_stats.json models/sequence_policy.npz
+        git commit -m "Update sequence model [skip ci]" || echo "No changes to commit"
+        git push
